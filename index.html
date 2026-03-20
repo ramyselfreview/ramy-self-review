@@ -630,11 +630,12 @@ body {
 .checklist-label { font-size: 13px; color: var(--text-dark); line-height: 1.6; cursor: pointer; }
 .checklist-label strong { color: var(--green-dark); }
 </style>
-<!-- Firebase SDK (compat version - works from file://) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
   // ══════ FIREBASE CONFIG — Ramy Self Review ══════
   const firebaseConfig = {
     apiKey: "AIzaSyBHEULiVxc728xtZC5mCDpmo1NCnXBkOYQ",
@@ -646,43 +647,20 @@ body {
     measurementId: "G-6HKFTJZWJ0"
   };
 
+  // حفظ الـ config تلقائياً
   localStorage.setItem('fb_config', JSON.stringify(firebaseConfig));
+
+  let app, db, auth;
 
   function initFirebase(config) {
     try {
-      let app;
-      try { app = firebase.app(); } catch(e) { app = firebase.initializeApp(config); }
-      const db   = firebase.firestore();
-      const auth = firebase.auth();
-
-      window._fb = {
-        app, db, auth,
-        // Auth helpers
-        signInWithEmailAndPassword : (a, email, pass) => auth.signInWithEmailAndPassword(email, pass),
-        createUserWithEmailAndPassword: (a, email, pass) => auth.createUserWithEmailAndPassword(email, pass),
-        onAuthStateChanged: (a, cb) => auth.onAuthStateChanged(cb),
-        signOut: (a) => auth.signOut(),
-        // Firestore helpers
-        doc: (db, ...segs) => {
-          let ref = db;
-          segs.forEach((s, i) => { ref = (i % 2 === 0) ? ref.collection(s) : ref.doc(s); });
-          return ref;
-        },
-        collection: (db, ...segs) => {
-          let ref = db;
-          segs.forEach((s, i) => { ref = (i % 2 === 0) ? ref.collection(s) : ref.doc(s); });
-          return ref;
-        },
-        setDoc: (ref, data) => ref.set(data, { merge: true }),
-        getDocs: async (ref) => {
-          const snap = await ref.get();
-          snap.docs = snap.docs || [];
-          return snap;
-        },
-        deleteDoc: (ref) => ref.delete(),
-        onSnapshot: (ref, cb) => ref.onSnapshot(cb),
+      app = initializeApp(config);
+      db = getFirestore(app);
+      auth = getAuth(app);
+      window._fb = { app, db, auth, initFirebase,
+        setDoc, doc, collection, getDocs, deleteDoc, onSnapshot, orderBy, query,
+        signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
       };
-
       window.dispatchEvent(new Event('firebase-ready'));
       return true;
     } catch(e) { console.error('Firebase init error:', e); return false; }
@@ -735,7 +713,6 @@ body {
   <div class="nav-tab" onclick="showSection('evidence')">📁 قائمة الأدلة</div>
   <div class="nav-tab" onclick="showSection('scorecard')">📊 بطاقة التقييم</div>
   <div class="nav-tab" onclick="showSection('creative')">✨ إبداعية</div>
-</nav>
 </nav>
 
 <!-- ══ FIREBASE STATUS BAR ══ -->
@@ -3547,8 +3524,7 @@ function openFbSetup() {
     document.getElementById('fb-storageBucket').value = cfg.storageBucket || '';
     document.getElementById('fb-appId').value = cfg.appId || '';
   }
-  if (currentUser || cfg) fbModalTab('login');
-  else fbModalTab('setup');
+  if (currentUser) fbModalTab('login');
 }
 
 function closeFbModal() {
@@ -3728,3 +3704,5 @@ document.getElementById('fb-modal').addEventListener('click', function(e) {
   if (e.target === this) closeFbModal();
 });
 </script>
+</body>
+</html>
